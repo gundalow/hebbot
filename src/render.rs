@@ -117,6 +117,7 @@ pub fn render(
     news_list: Vec<News>,
     config: Config,
     editor: &RoomMember,
+    placeholder_message: String,
 ) -> Result<RenderResult, minijinja::Error> {
     let mut render_projects: BTreeMap<String, RenderProject> = BTreeMap::new();
     let mut render_sections: BTreeMap<String, RenderSection> = BTreeMap::new();
@@ -245,7 +246,7 @@ pub fn render(
             reporter_id: newsbot_id.to_owned(),
             reporter_display_name: "newsbot".to_string(),
             timestamp: Utc::now(),
-            message: "* tomorrow Meeting at 3pm".to_string(),
+            message: placeholder_message,
             images: Vec::new(),
             videos: Vec::new(),
         };
