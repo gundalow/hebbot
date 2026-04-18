@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use matrix_sdk::room::RoomMember;
-use matrix_sdk::ruma::{EventId, OwnedMxcUri, OwnedUserId};
+use matrix_sdk::ruma::{EventId, OwnedMxcUri, OwnedUserId, UserId};
 use serde::{Deserialize, Serialize};
 
 use std::collections::{BTreeMap, HashSet};
@@ -236,6 +236,35 @@ pub fn render(
                 }
             }
         }
+    }
+
+    // Inject automatic event news placeholder
+    if let Some(section) = config.section_by_name("events") {
+        let newsbot_id = UserId::parse("@newsbot:ansible.im").unwrap();
+        let placeholder_news = RenderNews {
+            reporter_id: newsbot_id.to_owned(),
+            reporter_display_name: "newsbot".to_string(),
+            timestamp: Utc::now(),
+            message: "* tomorrow Meeting at 3pm".to_string(),
+            images: Vec::new(),
+            videos: Vec::new(),
+        };
+
+        let map_section_name = format!("{}-{}", section.order, section.name);
+        match render_sections.get_mut(&map_section_name) {
+            Some(render_section) => {
+                render_section.news.insert(0, placeholder_news);
+            }
+            None => {
+                let render_section = RenderSection {
+                    section,
+                    projects: Vec::new(),
+                    news: vec![placeholder_news],
+                };
+                render_sections.insert(map_section_name, render_section);
+            }
+        }
+        news_count += 1;
     }
 
     // Sort `RenderProject`s into `RenderSection`s
