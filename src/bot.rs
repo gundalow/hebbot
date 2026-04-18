@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 
 use matrix_sdk::config::{RequestConfig, SyncSettings};
 use matrix_sdk::event_handler::Ctx;
@@ -679,7 +679,7 @@ impl Bot {
             "!list-config" => self.list_config_command().await,
             "!list-projects" => self.list_projects_command().await,
             "!list-sections" => self.list_sections_command().await,
-            "!render" => self.render_command(member).await,
+            "!render" => self.render_command(args, member).await,
             "!restart" => self.restart_command().await,
             "!say" => self.say_command(args).await,
             "!status" => self.status_command().await,
@@ -794,13 +794,28 @@ impl Bot {
             .await;
     }
 
-    async fn render_command(&self, editor: &RoomMember) {
+    async fn render_command(&self, args: &str, editor: &RoomMember) {
+        let args = args.trim();
+        let placeholder_message = if args.is_empty() {
+            "FIXME: Manually add events here".to_string()
+        } else {
+            match NaiveDate::parse_from_str(args, "%Y-%m-%d") {
+                Ok(_) => format!("* Meetings since {}", args),
+                Err(_) => {
+                    let msg = format!("❌ Invalid date format: “{}”. Please use YYYY-MM-DD.", args);
+                    self.send_message(&msg, BotMsgType::AdminRoomPlainNotice)
+                        .await;
+                    return;
+                }
+            }
+        };
+
         let result = {
             let news_store = self.news_store.lock().unwrap();
             let news = news_store.news();
             let config = self.config.clone();
 
-            render::render(news, config, editor)
+            render::render(news, config, editor, placeholder_message)
         };
         let result = match result {
             Ok(result) => result,
